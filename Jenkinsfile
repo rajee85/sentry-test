@@ -15,9 +15,6 @@ pipeline {
     }
    stages {
      stage('Start') {
-            agent {
-                label NODE_LABEL
-            }
             steps {
                 sh 'nc -zv sentry.io 443'
             }
