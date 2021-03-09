@@ -26,6 +26,7 @@ pipeline {
                 sh 'echo $SENTRY_ORG'
                 sh 'echo $SENTRY_PROJECT'
                 sh 'sentry-cli releases list'
+                sh 'uname -a'
 
             }
         }
