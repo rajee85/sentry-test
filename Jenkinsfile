@@ -17,7 +17,9 @@ pipeline {
      stage('Start') {
             steps {
                /* sh 'nc -zv sentry.io 443' */
-                sh 'curl -v https://sentry.io -vvv'
+               /* sh 'curl -v https://sentry.io -vvv' */
+                sh 'curl -sL https://sentry.io/get-cli/ | bash'
+                sh 'sentry-cli --help'
             }
         }
    }
