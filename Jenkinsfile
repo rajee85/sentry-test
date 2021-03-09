@@ -16,7 +16,8 @@ pipeline {
    stages {
      stage('Start') {
             steps {
-                sh 'nc -zv sentry.io 443'
+               /* sh 'nc -zv sentry.io 443' */
+                sh 'curl -v https://sentry.io -vvv'
             }
         }
    }
