@@ -19,7 +19,7 @@ pipeline {
                 docker {
                     
                     image "${NEXUS_REGISTRY}/getsentry/sentry-cli"
-                    args "-e SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}"
+                    args "-e SENTRY_AUTH_TOKEN=66ffe6f744954b39bd69333e677b72a1199bbff6efcb44f59360dbaa2ca98ccb"
                 }
             }
             steps {
