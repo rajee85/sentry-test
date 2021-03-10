@@ -15,6 +15,13 @@ pipeline {
     }
    stages {
      stage('Start') {
+         agent {
+                docker {
+                    label NODE_LABEL
+                    image "${NEXUS_REGISTRY}/getsentry/sentry-cli"
+                    args "-e SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}"
+                }
+            }
             steps {
                /* sh 'nc -zv sentry.io 443' */
                /* sh 'curl -v https://sentry.io -vvv' */
