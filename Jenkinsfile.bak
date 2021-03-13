@@ -1,0 +1,276 @@
+#!/usr/bin/env groovy
+
+/* groovylint-disable CompileStatic, LineLength, NestedBlockDepth, NoWildcardImports */
+@Library('jenkins-pipeline-library@master')
+import static stormsensor.Constants.*
+  import static stormsensor.JenkinsUtils.*
+  import static stormsensor.SlackUtils.*
+
+  String artifactVersion = ''
+String hashSuffix = ''
+String currentpath = ''
+
+pipeline {
+  agent {
+    label JENKINS_SLAVE
+  }
+  environment {
+    PROJECT_NAME = "${PROJECT_TERRAPIN}"
+    //
+    JENKINS_SLACK_CHANNEL = "#${PROJECT_NAME}_builds"
+    //
+    NODE_LABEL = "$NODE_NAME"
+  }
+  options {
+    timeout(time: 30, unit: 'MINUTES')
+    skipStagesAfterUnstable()
+    buildDiscarder defaultLogRotator()
+  }
+  stages {
+    stage('Start') {
+      agent {
+        label NODE_LABEL
+      }
+      steps {
+        script {
+          hashSuffix = sh(script: "git log -n 1 --pretty=format:'%h'", returnStdout: true).trim()
+          reportStart(this, JENKINS_SLACK_CHANNEL)
+        }
+      }
+    }
+    stage('Build') {
+      agent {
+        docker {
+          label NODE_LABEL
+          image "${NEXUS_REGISTRY}/node:12-alpine3.12"
+          args DOCKER_NODE_ARGS
+        }
+      }
+      steps {
+        sh 'npm i -s'
+        sh 'npm run -s clean'
+        sh 'npm run -s build -progress=false -- --prod'
+        // TODO: Ensure tests pass before enabling
+        // sh 'npm run -s test'
+        sh 'npm run -s artifact-package'
+
+        script {
+          
+
+          String versionScript = 'grep \'"version":\' package.json | cut -d \'"\' -f 4'
+          String version = sh(script: versionScript, returnStdout: true).trim()
+
+          artifactVersion = BRANCH_NAME == BRANCH_DEVELOP ?
+            "${version}_${BUILD_NUMBER}_${BRANCH_NAME}" : "${version}_${BUILD_NUMBER}"
+        }
+        echo "Version: [${artifactVersion}]"
+        script {
+          currentpath = sh(script: 'pwd', returnStdout: true).trim()
+        }
+        echo "${currentpath}"
+      }
+    }
+    stage('Upload Sentry Release') {
+      when {
+        anyOf {
+          branch BRANCH_MASTER
+          branch BRANCH_DEVELOP
+          branch "feature/HAR-1316-automation"
+        }
+      }
+      
+      steps {
+        script {
+          // verifiyng the sentry-cli setup check
+          sh '''
+          FILE=/usr/local/bin/sentry-cli
+if [ -f "$FILE" ]; then
+    echo "$FILE exists."
+    exit 0
+else
+    `curl -sL https://sentry.io/get-cli/ | bash`
+fi
+            '''
+withCredentials([string(credentialsId: 'd54b2431-5176-4ab8-bef8-5e3ec26b6ab9', variable: 'SENTRY_AUTH_TOKEN')]) {
+        sh "echo $artifactVersion"
+        sh "export SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN;export SENTRY_ORG='stormsensor';export SENTRY_PROJECT='terrapin';sentry-cli releases list"
+        sh "export SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN;export SENTRY_ORG='stormsensor';export SENTRY_PROJECT='terrapin';sentry-cli releases new $artifactVersion'_'$hashSuffix"
+        sh "export SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN;export SENTRY_ORG='stormsensor';export SENTRY_PROJECT='terrapin';sentry-cli releases files $artifactVersion'_'$hashSuffix upload-sourcemaps $currentpath/dist"
+        sh "export SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN;export SENTRY_ORG='stormsensor';export SENTRY_PROJECT='terrapin';sentry-cli releases finalize $artifactVersion'_'$hashSuffix"
+        sh "export SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN;export SENTRY_ORG='stormsensor';export SENTRY_PROJECT='terrapin';sentry-cli releases deploys $artifactVersion'_'$hashSuffix new -e dev"
+        // TODO: Move the Prod sentry release to its own on-demand deployer
+
+        // sentry-cli releases deploys ${SENTRY_RELEASE} new -e prod
+      }
+          
+        }
+      }
+    }
+    stage('Docker Build & Push') {
+      when {
+        anyOf {
+          branch BRANCH_MASTER
+          branch BRANCH_DEVELOP
+        }
+      }
+      agent {
+        label NODE_LABEL
+      }
+      steps {
+        script {
+          docker.withRegistry("https://${NEXUS_REGISTRY}:${NEXUS_REGISTRY_PORT}", CREDENTIALS_ID_NEXUS) {
+            image = docker.build("derecho/${PROJECT_NAME}")
+            image.push(artifactVersion)
+            image.push('latest')
+          }
+        }
+      }
+    }
+    stage('Archive to Nexus') {
+      when {
+        anyOf {
+          branch BRANCH_MASTER
+          branch BRANCH_DEVELOP
+        }
+      }
+      agent {
+        docker {
+          label NODE_LABEL
+          image "${NEXUS_REGISTRY}/stormsensor/pipeline-toolbox:1.0.1"
+          args DOCKER_ENTRYPOINT
+        }
+      }
+      steps {
+        withCredentials([usernamePassword(credentialsId: CREDENTIALS_ID_NEXUS,
+          usernameVariable: CREDENTIALS_KEY_NEXUS_USER, passwordVariable: CREDENTIALS_KEY_NEXUS_PW)]) {
+          script {
+            String uploadArtifactCommand = [
+              'curl -s',
+              "-u ${NEXUS_USER}:${NEXUS_PW}",
+              '--upload-file artifacts/app.tar.gz',
+              "https://${NEXUS_URL}/repository/artifacts/${PROJECT_NAME}/${artifactVersion}.tar.gz",
+            ].join(JOIN_SPACE)
+            sh uploadArtifactCommand
+          }
+        }
+      }
+    }
+    stage('Deploy to Environment - Dev') {
+      when {
+        anyOf {
+          branch BRANCH_MASTER
+          branch BRANCH_DEVELOP
+        }
+      }
+      agent {
+        docker {
+          label NODE_LABEL
+          image "${NEXUS_REGISTRY}/stormsensor/pipeline-toolbox:1.0.1"
+          args DOCKER_ENTRYPOINT
+        }
+      }
+      steps {
+        script {
+          // https://issues.jenkins-ci.org/browse/JENKINS-53512
+          Map deployConfig = [
+            projectName: PROJECT_NAME,
+            destinationEnv: ENVIRONMENT_DEV,
+            artifactVersion: artifactVersion,
+          ]
+          deployStormsensor {
+            config deployConfig
+          }
+        }
+      }
+    }
+    // stage('Run Acceptance Tests') {
+    //     when {
+    //         anyOf {
+    //             branch BRANCH_MASTER
+    //             branch BRANCH_DEVELOP
+    //         }
+    //     }
+    //     agent {
+    //         docker {
+    //             label JENKINS_SLAVE
+    //             image "${NEXUS_REGISTRY}/derecho/acceptance-tests:latest"
+    //             // TODO Remove
+    //             args '--entrypoint=""'
+    //         }
+    //     }
+    //     steps {
+    //         sh "mkdir -p screenshots/${PROJECT_NAME}"
+    //         script {
+    //             // See: docker-files/jenkins/chromedriver/Dockerfile
+    //             // Defaults: WIDTH=1600, HEIGHT=900, DISPLAY=:99
+    //             ffmpegCommand = [
+    //                 'ffmpeg -nostdin -nostats -loglevel error -y -f x11grab',
+    //                 /* groovylint-disable-next-line GStringExpressionWithinString */
+    //                 '-s ${WIDTH}x${HEIGHT} -i ${DISPLAY}+nomouse -r 24',
+    //                 '-c:v libx264 -preset superfast',
+    //                 '-pix_fmt yuv420p -threads 0',
+    //                 "-f mp4 screenshots/${PROJECT_NAME}/${buildVersion}_output.mp4 &",
+    //             ].join(JOIN_SPACE)
+    //         }
+    //         sh ffmpegCommand
+
+    //         script {
+    //             // try {
+    //             //     sh "npm run ng -- e2e -c ${DEPLOY_ENV_DEV}"
+    //             // } finally {
+    //             sh 'ps aux | grep ffmpeg | grep -vw grep | awk \'{print $1}\' | xargs kill'
+    //             sh 'sleep 5'
+    //             //  archiveArtifacts (artifacts: 'screenshots/**')
+    //             // }
+    //         }
+    //     }
+    // }
+    stage('Deploy to Environment - Staging') {
+      when {
+        anyOf {
+          branch BRANCH_MASTER
+          branch BRANCH_DEVELOP
+        }
+      }
+      agent {
+        docker {
+          label NODE_LABEL
+          image "${NEXUS_REGISTRY}/stormsensor/pipeline-toolbox:1.0.1"
+          args DOCKER_ENTRYPOINT
+        }
+      }
+      steps {
+        script {
+          // https://issues.jenkins-ci.org/browse/JENKINS-53512
+          Map deployConfig = [
+            projectName: PROJECT_NAME,
+            destinationEnv: ENVIRONMENT_STAGING,
+            artifactVersion: artifactVersion,
+          ]
+          deployStormsensor {
+            config deployConfig
+          }
+        }
+      }
+    }
+  }
+  post {
+    always {
+      node(NODE_LABEL) {
+        script {
+          cleanJenkinsSlaveWorkspace(this)
+        }
+      }
+    }
+    success {
+      script {
+        reportSuccess(this, JENKINS_SLACK_CHANNEL)
+      }
+    }
+    failure {
+      script {
+        reportFailure(this, JENKINS_SLACK_CHANNEL)
+      }
+    }
+  }
+}
