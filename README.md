@@ -1,2 +1,2 @@
 # test-repo
-# testin
+# testing
