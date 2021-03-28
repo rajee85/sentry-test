@@ -20,8 +20,8 @@ pipeline {
                /* sh 'curl -v https://sentry.io -vvv' */
                 /*sh 'curl -sL https://sentry.io/get-cli/ | bash'*/
                 sh 'python --version'
-                def versionname = sh (script: "git log --format=%B --merges -n 1 | grep -E 'patch|major|minor' | cut -c 1-5", returnStdout: true).trim()
-                  def result = sh (script: "python python-version.py '$versionname'", returnStdout: true).trim()
+                String versionname = sh (script: "git log --format=%B --merges -n 1 | grep -E 'patch|major|minor' | cut -c 1-5", returnStdout: true).trim()
+                String result = sh (script: "python python-version.py '$versionname'", returnStdout: true).trim()
                     echo "${result}"
 
             }
