@@ -30,5 +30,12 @@ pipeline {
 
             }
         }
+       stage('dev') {
+           steps {
+               script {
+                   echo "dev : ${artifactVersion}"  
+               }
+           }
+       }
    }
 }
