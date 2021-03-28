@@ -1,2 +1,2 @@
-# test-rep
+# test-repo
 # testing
