@@ -29,7 +29,8 @@ pipeline {
                     echo "${result}"
                     artifactVersion = "${result}"
                     echo "${artifactVersion}"
-                    echo "${artifactVersion}" > version
+                    sh (script: "echo '$artifactVersion' > version")
+                    //echo "${artifactVersion}" > version
                     withCredentials([usernamePassword(credentialsId: 'registry',
                         usernameVariable: CREDENTIALS_KEY_NEXUS_USER, passwordVariable: CREDENTIALS_KEY_NEXUS_PW)])  {
                     sh 'curl -v -u  rajee:TBHtPV4A6Zu9z9ZCRc2F --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
