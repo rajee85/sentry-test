@@ -22,7 +22,7 @@ pipeline {
                 /*sh 'curl -sL https://sentry.io/get-cli/ | bash'*/
                 withCredentials([usernamePassword(credentialsId: 'registry',
                         usernameVariable: CREDENTIALS_KEY_NEXUS_USER, passwordVariable: CREDENTIALS_KEY_NEXUS_PW)])  {
-                    sh 'curl -v -u  ${CREDENTIALS_KEY_NEXUS_USER}:${CREDENTIALS_KEY_NEXUS_PW} --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
+                    sh 'curl -v -u  $CREDENTIALS_KEY_NEXUS_USER:$CREDENTIALS_KEY_NEXUS_PW --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
                 }
                 sh 'python --version'
                 
