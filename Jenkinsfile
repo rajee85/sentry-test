@@ -23,7 +23,7 @@ pipeline {
                 
                 sh 'python --version'
                     
-               // sh 'curl -u rajee:TBHtPV4A6Zu9z9ZCRc2F https://nexus.apps.stormsensor.io/repository/artifacts/thor/version > version'
+                sh 'curl -u rajee:TBHtPV4A6Zu9z9ZCRc2F https://nexus.apps.stormsensor.io/repository/artifacts/thor/version > version'
                 def versionname = sh (script: "git log --format=%B --merges -n 1 | grep -E 'patch|major|minor' | cut -c 1-5", returnStdout: true).trim()
                 def result = sh (script: "python python-version.py '$versionname'", returnStdout: true).trim()
                     echo "${result}"
