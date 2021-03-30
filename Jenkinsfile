@@ -36,7 +36,8 @@ pipeline {
                     echo "${result}"
                     artifactVersion = "${result}"
                     echo "${artifactVersion}"
-                    sh (script: "echo '$artifactVersion' > version")
+                   // sh (script: "echo '$artifactVersion' > version")
+                 sh (script : "echo '3.131.4' > version")
                     //echo "${artifactVersion}" > version
                     withCredentials([usernamePassword(credentialsId: 'registry',
                         usernameVariable: CREDENTIALS_KEY_NEXUS_USER, passwordVariable: CREDENTIALS_KEY_NEXUS_PW)])  {
