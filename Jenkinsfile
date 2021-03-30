@@ -27,10 +27,10 @@ pipeline {
                      withCredentials([usernamePassword(credentialsId: 'registry',
                         usernameVariable: CREDENTIALS_KEY_NEXUS_USER, passwordVariable: CREDENTIALS_KEY_NEXUS_PW)])  {
                    // sh 'curl -v -u  rajee:TBHtPV4A6Zu9z9ZCRc2F --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
-                         sh 'curl -v -u ${CREDENTIALS_KEY_NEXUS_USER}:${CREDENTIALS_KEY_NEXUS_PW} --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
+                         sh 'curl -v -u ${NEXUS_USER}:${NEXUS_PW} --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
                 }
                   
-                  sh 'curl -u ${NEXUS_USER}:${NEXUS_PW} https://nexus.apps.stormsensor.io/repository/artifacts/thor/version > version'
+                  //sh 'curl -u ${NEXUS_USER}:${NEXUS_PW} https://nexus.apps.stormsensor.io/repository/artifacts/thor/version > version'
                 def versionname = sh (script: "git log --format=%B --merges -n 1 | grep -E 'patch|major|minor' | cut -c 1-5", returnStdout: true).trim()
                 def result = sh (script: "python python-version.py '$versionname'", returnStdout: true).trim()
                     echo "${result}"
@@ -41,7 +41,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'registry',
                         usernameVariable: CREDENTIALS_KEY_NEXUS_USER, passwordVariable: CREDENTIALS_KEY_NEXUS_PW)])  {
                    // sh 'curl -v -u  rajee:TBHtPV4A6Zu9z9ZCRc2F --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
-                      sh 'curl -v -u ${CREDENTIALS_KEY_NEXUS_USER}:${CREDENTIALS_KEY_NEXUS_PW} --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
+                        sh 'curl -v -u ${NEXUS_USER}:${NEXUS_PW} --upload-file version https://nexus.apps.stormsensor.io/repository/artifacts/thor/version'
                 }
                     
                 }
