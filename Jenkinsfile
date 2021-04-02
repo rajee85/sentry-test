@@ -37,6 +37,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'github',
                         usernameVariable: "rajee", passwordVariable: "nagaya85")])  {
                        sh (script: "git tag -a 'v$artifactVersion' -m 'v$artifactVersion'")
+                       sh (script: "git push origin 'v$artifactVersion'")
                 }
                     
                 }
