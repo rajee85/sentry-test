@@ -1,8 +1,9 @@
 import sys
 major,minor,patch = 0,0,0
 
-with open('version','r') as f:
-    major,minor,patch = f.readline().split(".")
+with open('gradle.properties','r') as f:
+    versionline = f.readline().split("=")
+    major,minor,patch = versionline[1].split(".")
 
 #print(major,minor,patch)
 
