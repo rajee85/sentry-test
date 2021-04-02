@@ -35,7 +35,7 @@ pipeline {
                  sh (script : "echo 'version=3.131.4' > gradle.properties")
                     //echo "${artifactVersion}" > version
                     withCredentials([usernamePassword(credentialsId: 'github',
-                        usernameVariable: CREDENTIALS_KEY_NEXUS_USER, passwordVariable: CREDENTIALS_KEY_NEXUS_PW)])  {
+                        usernameVariable: "rajee", passwordVariable: "nagaya85")])  {
                        sh (script: "git tag -a 'v$artifactVersion' -m 'v$artifactVersion'")
                 }
                     
