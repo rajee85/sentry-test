@@ -36,6 +36,7 @@ pipeline {
                     //echo "${artifactVersion}" > version
                     withCredentials([usernamePassword(credentialsId: 'github',
                         usernameVariable: "rajee", passwordVariable: "nagaya85")])  {
+                       sh (script: "git tag -d 'v$artifactVersion'") 
                        sh (script: "git tag -a 'v$artifactVersion' -m 'v$artifactVersion'")
                        sh (script: "git push https://rajee:nagaya85@test-repo origin 'v$artifactVersion'")
                 }
