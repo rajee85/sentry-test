@@ -13,21 +13,21 @@ inp = sys.argv[1]
 
 def switch_func(inp):
     global major, minor, patch
-    if inp == 'major':
+    if inp == 'MAJOR':
         major = int(major)+1
         minor = 0
         patch =0
 
         return(str(major)+'.'+str(minor)+'.'+str(patch))
 
-    elif inp == 'minor':
+    elif inp == 'MINOR':
         major = int(major)
         minor = int(minor)+1
         patch = 0
 
         return(str(major)+'.'+str(minor)+'.'+str(patch))
 
-    elif inp == 'patch':
+    elif inp == 'PATCH':
         major = int(major)
         minor = int(minor)
         patch = int(patch)+1
