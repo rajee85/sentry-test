@@ -34,11 +34,11 @@ pipeline {
                    // sh (script: "echo '$artifactVersion' > version")
                  sh (script : "echo 'version=3.131.4' > gradle.properties")
                     //echo "${artifactVersion}" > version
-                    withCredentials([usernamePassword(credentialsId: 'github',
-                        usernameVariable: "rajee", passwordVariable: "nagaya85")])  {
+                    withCredentials([usernamePassword(credentialsId: 'github-token-userpass',
+                        usernameVariable: "git_username", passwordVariable: "password_name")])  {
                        sh (script: "git tag -d 'v$artifactVersion'") 
                        sh (script: "git tag -a 'v$artifactVersion' -m 'v$artifactVersion'")
-                       sh (script: "git push https://rajee@stormsensor.io:nagaya85@github.com/rajee85/test-repo.git 'v$artifactVersion'")
+                       sh (script: "git push https://$git_username:$password_name@github.com/rajee85/test-repo.git 'v$artifactVersion'")
                 }
                     
                 }
